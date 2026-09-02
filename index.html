@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>貯金 — Chokin, Ruang Menabungmu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700;800&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --washi:#FBF7F0;
+    --washi-dim:#F1E9DC;
+    --sumi:#1E1226;
+    --sumi-soft:#4A3B5C;
+    --shu:#C81E3A;
+    --shu-deep:#8F1329;
+    --murasaki:#6B2C91;
+    --murasaki-deep:#3A1650;
+    --kin:#B9924A;
+    --line:rgba(30,18,38,0.12);
+    --shadow:0 18px 40px rgba(58,22,80,0.18);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--washi);
+    color:var(--sumi);
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    font-weight:400;
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.mincho{font-family:'Shippori Mincho', serif;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer;}
+  ::selection{background:var(--shu); color:var(--washi);}
+
+  /* ---------- texture background ---------- */
+  .seigaiha{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    opacity:0.05;
+    background-image:
+      radial-gradient(circle at 0 0, transparent 22px, var(--murasaki-deep) 23px, transparent 24px),
+      radial-gradient(circle at 40px 0, transparent 22px, var(--murasaki-deep) 23px, transparent 24px);
+    background-size:40px 20px;
+    background-position:0 0;
+  }
+
+  .wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 28px;}
+
+  /* ---------- room transition (fusuma sliding doors) ---------- */
+  .fusuma{position:fixed; inset:0; z-index:90; pointer-events:none; display:flex;}
+  .fusuma-panel{
+    flex:1; position:relative; overflow:hidden; transform:scaleX(0);
+    background:linear-gradient(160deg, var(--sumi), var(--murasaki-deep) 60%, var(--shu-deep));
+  }
+  .fusuma-panel.left{transform-origin:left center;}
+  .fusuma-panel.right{transform-origin:right center;}
+  .fusuma.animating .fusuma-panel{transition:transform .5s cubic-bezier(.76,0,.24,1);}
+  .fusuma-panel::before{
+    content:"貯"; position:absolute; top:50%; transform:translateY(-50%);
+    font-family:'Shippori Mincho', serif; font-size:220px; color:rgba(251,247,240,0.07); line-height:1;
+  }
+  .fusuma-panel.left::before{right:-50px;}
+  .fusuma-panel.right::before{left:-50px;}
+
+  /* ---------- dashboard room (separate space) ---------- */
+  #room-dashboard{
+    position:fixed; inset:0; z-index:60; background:var(--washi);
+    overflow-y:auto; transform:translateX(100%);
+    transition:transform .55s cubic-bezier(.65,0,.35,1);
+  }
+  #room-dashboard.open{transform:translateX(0);}
+  .room-topbar{
+    position:sticky; top:0; z-index:5; background:rgba(251,247,240,0.92); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .room-topbar-inner{display:flex; align-items:center; justify-content:space-between; padding:18px 28px;}
+  .btn-back{padding:10px 18px; font-size:13px;}
+  .room-dashboard-body{padding:36px 28px 60px;}
+  .room-dashboard-body .section-head{margin-bottom:26px;}
+
+  /* ---------- header ---------- */
+  header{
+    position:sticky; top:0; z-index:40;
+    background:rgba(251,247,240,0.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav{display:flex; align-items:center; justify-content:space-between; padding:18px 28px; max-width:1180px; margin:0 auto;}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand .seal{
+    width:40px; height:40px; border-radius:3px;
+    background:linear-gradient(155deg, var(--shu), var(--shu-deep));
+    color:var(--washi); display:flex; align-items:center; justify-content:center;
+    font-family:'Shippori Mincho', serif; font-size:20px; font-weight:700;
+    box-shadow:0 6px 14px rgba(200,30,58,0.35);
+  }
+  .brand .name{font-family:'Shippori Mincho', serif; font-size:19px; font-weight:700; letter-spacing:0.02em;}
+  .brand .name small{display:block; font-family:'Zen Kaku Gothic New', sans-serif; font-weight:400; font-size:11px; color:var(--sumi-soft); letter-spacing:0.15em;}
+  .navlinks{display:flex; gap:30px; font-size:14px; color:var(--sumi-soft);}
+  .navlinks a{border-bottom:1px solid transparent; padding-bottom:3px; transition:border-color .2s, color .2s;}
+  .navlinks a:hover{color:var(--shu); border-color:var(--shu);}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative; padding:74px 0 56px; overflow:hidden;}
+  .hero::before{
+    content:""; position:absolute; top:-180px; right:-120px; width:520px; height:520px; border-radius:50%;
+    background:radial-gradient(circle, rgba(107,44,145,0.16), rgba(200,30,58,0.06) 55%, transparent 72%);
+    pointer-events:none;
+  }
+  .hero-kanji{
+    position:absolute; right:-40px; top:-40px; font-family:'Shippori Mincho', serif;
+    font-size:340px; font-weight:700; color:var(--murasaki);
+    opacity:0.06; line-height:1; user-select:none; pointer-events:none;
+  }
+  .tategaki{
+    position:absolute; left:-4px; top:8px; writing-mode:vertical-rl; font-family:'Shippori Mincho', serif;
+    font-size:13px; letter-spacing:0.5em; color:var(--kin); opacity:0.55; user-select:none; pointer-events:none;
+  }
+  .hero-grid{display:grid; grid-template-columns:1.15fr 0.85fr; gap:48px; align-items:center; position:relative; padding-left:26px;}
+  .eyebrow-line{display:flex; align-items:center; gap:10px; margin-bottom:18px; color:var(--shu-deep); font-size:13px; letter-spacing:0.08em;}
+  .eyebrow-line .bar{width:26px; height:2px; background:var(--shu);}
+  .hero h1{font-size:53px; font-weight:700; line-height:1.2; max-width:640px;}
+  .hero h1 em{font-style:normal; color:var(--shu); position:relative;}
+  .hero h1 em::after{
+    content:""; position:absolute; left:0; right:0; bottom:2px; height:9px; background:rgba(200,30,58,0.12); z-index:-1;
+  }
+  .hero p.lead{margin-top:20px; max-width:480px; color:var(--sumi-soft); font-size:16px;}
+  .hero-cta{margin-top:30px; display:flex; gap:14px; flex-wrap:wrap;}
+  .btn{
+    padding:13px 26px; font-size:14px; border:1px solid var(--sumi); background:transparent;
+    color:var(--sumi); transition:all .25s; letter-spacing:0.02em;
+  }
+  .btn-primary{background:linear-gradient(135deg, var(--shu), var(--murasaki-deep)); color:var(--washi); border-color:transparent; box-shadow:0 12px 24px rgba(139,20,60,0.28);}
+  .btn-primary:hover{transform:translateY(-2px); box-shadow:0 16px 30px rgba(139,20,60,0.36);}
+  .btn-ghost:hover{background:var(--sumi); color:var(--washi);}
+
+  /* hero illustration panel */
+  .hero-art{
+    position:relative; aspect-ratio:4/5;
+    background:linear-gradient(165deg, var(--sumi), var(--murasaki-deep) 65%, var(--shu-deep));
+    clip-path:polygon(0 0, 100% 0, 100% 88%, 88% 100%, 0 100%);
+    box-shadow:var(--shadow); overflow:hidden;
+  }
+  .hero-art svg{position:absolute; inset:0; width:100%; height:100%;}
+  .hero-art .caption{
+    position:absolute; left:20px; bottom:24px; right:26px; color:var(--washi);
+  }
+  .hero-art .caption .jp{font-family:'Shippori Mincho', serif; font-size:20px; font-weight:700;}
+  .hero-art .caption .en{font-size:11.5px; letter-spacing:0.1em; color:#D8B6E0; margin-top:4px;}
+  .hero-seal{
+    position:absolute; top:20px; right:24px; width:52px; height:52px; border-radius:50%;
+    border:1.5px solid rgba(251,247,240,0.55); display:flex; align-items:center; justify-content:center;
+    font-family:'Shippori Mincho', serif; font-size:22px; color:var(--washi); letter-spacing:0;
+  }
+
+  /* ---------- section shell ---------- */
+  section{padding:56px 0; position:relative;}
+  .section-head{display:flex; align-items:baseline; justify-content:space-between; gap:20px; margin-bottom:28px; border-bottom:1px solid var(--line); padding-bottom:16px;}
+  .section-head h2{font-size:26px; font-weight:700;}
+  .section-head .jp{font-size:13px; color:var(--kin); letter-spacing:0.1em;}
+
+  .wave-divider{width:100%; height:22px; margin:0 0 8px;}
+  .wave-divider svg{width:100%; height:100%; display:block;}
+
+  /* ---------- onboarding ---------- */
+  .onboard{
+    max-width:560px; margin:0 auto; background:var(--washi); border:1px solid var(--line);
+    padding:38px 36px; box-shadow:var(--shadow); position:relative;
+    clip-path:polygon(0 0, 100% 0, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+  }
+  .onboard::before{content:""; position:absolute; left:0; top:0; width:6px; height:100%; background:linear-gradient(var(--shu), var(--murasaki-deep));}
+  .onboard::after{
+    content:"始"; position:absolute; right:22px; top:18px; font-family:'Shippori Mincho', serif;
+    font-size:64px; color:var(--murasaki); opacity:0.08; line-height:1;
+  }
+  .onboard h3{font-size:22px; margin-bottom:8px;}
+  .onboard p{color:var(--sumi-soft); font-size:14px; margin-bottom:22px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:12.5px; color:var(--sumi-soft); margin-bottom:6px; letter-spacing:0.03em;}
+  .field input{
+    width:100%; padding:12px 14px; border:1px solid var(--line); background:var(--washi-dim);
+    font-family:inherit; font-size:15px; color:var(--sumi); transition:border-color .2s;
+  }
+  .field input:focus{outline:none; border-color:var(--shu);}
+  .note-privacy{font-size:12px; color:var(--sumi-soft); margin-top:14px; line-height:1.6; border-top:1px dashed var(--line); padding-top:14px;}
+
+  /* ---------- dashboard ---------- */
+  .dash{display:none; grid-template-columns:1.05fr 0.95fr; gap:34px;}
+  .dash.show{display:grid;}
+  .card{
+    background:var(--washi); border:1px solid var(--line); padding:26px;
+    box-shadow:0 10px 24px rgba(58,22,80,0.08); position:relative; overflow:hidden;
+    transition:box-shadow .25s, transform .25s;
+  }
+  .card::before{content:""; position:absolute; left:0; top:0; width:100%; height:3px; background:linear-gradient(90deg, var(--shu), var(--murasaki-deep));}
+  .card:hover{box-shadow:0 16px 32px rgba(58,22,80,0.14); transform:translateY(-2px);}
+  .card + .card{margin-top:26px;}
+  .card h3{font-size:15px; letter-spacing:0.04em; color:var(--sumi-soft); margin-bottom:18px; text-transform:none; display:flex; align-items:center; gap:8px;}
+  .card h3 .dot{width:6px; height:6px; background:var(--shu); border-radius:50%; display:inline-block;}
+
+  .quick-add{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .quick-add .full{grid-column:1/-1;}
+  .quick-add label{font-size:11.5px; color:var(--sumi-soft); display:block; margin-bottom:5px;}
+  .quick-add input, .quick-add select{
+    width:100%; padding:11px 12px; border:1px solid var(--line); background:var(--washi-dim); font-family:inherit; font-size:14px; color:var(--sumi);
+  }
+  .quick-add input:focus, .quick-add select:focus{outline:none; border-color:var(--shu);}
+  .quick-add button{grid-column:1/-1; margin-top:4px;}
+
+  .history{max-height:420px; overflow-y:auto; padding-right:4px;}
+  .history::-webkit-scrollbar{width:5px;}
+  .history::-webkit-scrollbar-thumb{background:var(--murasaki); }
+  .entry{
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:13px 0; border-bottom:1px solid var(--line); font-size:14px;
+  }
+  .entry:last-child{border-bottom:none;}
+  .entry .meta{display:flex; flex-direction:column;}
+  .entry .meta .note{font-weight:500;}
+  .entry .meta .date{font-size:11.5px; color:var(--sumi-soft); margin-top:2px;}
+  .entry .amount{color:var(--shu-deep); font-weight:700; font-family:'Shippori Mincho', serif;}
+  .empty-state{color:var(--sumi-soft); font-size:13.5px; padding:20px 0; text-align:center;}
+
+  /* progress gauge */
+  .gauge-wrap{display:flex; align-items:center; gap:22px;}
+  .gauge-num{}
+  .gauge-num .total{font-family:'Shippori Mincho', serif; font-size:26px; font-weight:700; color:var(--shu-deep);}
+  .gauge-num .goal{font-size:12.5px; color:var(--sumi-soft); margin-top:4px;}
+  .gauge-num .pct{display:inline-block; margin-top:10px; padding:3px 10px; background:var(--washi-dim); font-size:11.5px; color:var(--murasaki-deep); border:1px solid var(--line);}
+
+  .stat-mini-row{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px;}
+  .stat-mini{background:var(--washi-dim); padding:14px 16px; border-left:2px solid var(--shu);}
+  .stat-mini .v{font-family:'Shippori Mincho', serif; font-size:20px; font-weight:700;}
+  .stat-mini .l{font-size:11.5px; color:var(--sumi-soft); margin-top:2px;}
+
+  .tip-card{
+    background:linear-gradient(160deg, var(--murasaki-deep), var(--sumi)); color:var(--washi);
+    padding:24px; position:relative; overflow:hidden;
+  }
+  .tip-card .kanji-bg{position:absolute; right:-10px; bottom:-24px; font-family:'Shippori Mincho', serif; font-size:120px; opacity:0.1; line-height:1;}
+  .tip-card .label{font-size:11px; letter-spacing:0.14em; color:#D8B6E0; margin-bottom:10px;}
+  .tip-card .jp-text{font-family:'Shippori Mincho', serif; font-size:19px; margin-bottom:8px;}
+  .tip-card .id-text{font-size:13.5px; color:#E7DCEF;}
+
+  footer{border-top:1px solid var(--line); padding:30px 0; margin-top:20px;}
+  footer .wrap{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; font-size:12.5px; color:var(--sumi-soft);}
+
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--sumi); color:var(--washi); padding:12px 22px; font-size:13.5px;
+    box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:all .3s; z-index:100;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .storage-banner{
+    display:none; max-width:560px; margin:0 auto 18px; background:#FBE9C8; border:1px solid var(--kin);
+    color:var(--sumi); font-size:13px; padding:14px 18px; line-height:1.6;
+  }
+  .storage-banner.show{display:block;}
+  .storage-banner.mode-local{background:#EDE3F5; border-color:var(--murasaki);}
+  .storage-banner.mode-memory{background:#F8DADF; border-color:var(--shu);}
+
+  @media (max-width:860px){
+    .hero-grid{grid-template-columns:1fr; padding-left:0;}
+    .hero h1{font-size:38px;}
+    .hero-kanji{font-size:220px;}
+    .tategaki{display:none;}
+    .hero-art{aspect-ratio:16/10;}
+    .dash{grid-template-columns:1fr;}
+    .quick-add{grid-template-columns:1fr;}
+    .room-topbar-inner{padding:14px 18px;}
+    .room-dashboard-body{padding:26px 18px 50px;}
+    .btn-back{padding:9px 14px; font-size:12.5px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="seigaiha"></div>
+
+<div class="fusuma" id="fusuma">
+  <div class="fusuma-panel left"></div>
+  <div class="fusuma-panel right"></div>
+</div>
+
+<div id="room-landing">
+<header>
+  <div class="nav">
+    <div class="brand">
+      <div class="seal">貯</div>
+      <div class="name">Chokin<small>貯金 · RUANG MENABUNG</small></div>
+    </div>
+    <div class="navlinks">
+      <a href="#onboard-box" onclick="return goToDashboardRoom(event)">Dasbor</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="hero">
+    <div class="hero-kanji">貯</div>
+    <div class="tategaki">積 み 重 ね が 、 力 に な る</div>
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow-line"><span class="bar"></span>Disiplin kecil, hari demi hari</div>
+        <h1>Menabung dengan tenang, <em>seperti air</em> yang mengisi kolam sedikit demi sedikit.</h1>
+        <p class="lead">Catat setiap rupiah yang kamu sisihkan, lihat progres menuju targetmu, dan berbagi semangat menabung dengan pengguna lain — semuanya tersimpan otomatis, kapan pun kamu kembali.</p>
+        <div class="hero-cta">
+          <button class="btn btn-primary" onclick="document.getElementById('onboard-name').focus(); document.getElementById('onboard-box').scrollIntoView({behavior:'smooth', block:'center'})">Mulai Menabung</button>
+        </div>
+      </div>
+      <div class="hero-art">
+        <svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="300" cy="90" r="46" fill="#F1E9DC" opacity="0.9"/>
+          <circle cx="300" cy="90" r="46" fill="none" stroke="#B9924A" stroke-width="1.2" opacity="0.7"/>
+          <g opacity="0.5" stroke="#B9924A" stroke-width="1">
+            <path d="M0 210 Q 20 200 40 210 T 80 210 T 120 210 T 160 210 T 200 210 T 240 210 T 280 210 T 320 210 T 360 210 T 400 210" fill="none"/>
+            <path d="M0 232 Q 20 222 40 232 T 80 232 T 120 232 T 160 232 T 200 232 T 240 232 T 280 232 T 320 232 T 360 232 T 400 232" fill="none" opacity="0.6"/>
+          </g>
+          <g stroke="#C81E3A" stroke-width="14" stroke-linecap="square" fill="none">
+            <line x1="70" y1="260" x2="70" y2="460"/>
+            <line x1="330" y1="260" x2="330" y2="460"/>
+            <line x1="42" y1="268" x2="358" y2="268" stroke-width="20"/>
+            <line x1="60" y1="300" x2="340" y2="300" stroke-width="10"/>
+          </g>
+          <g fill="#F1E9DC" opacity="0.85">
+            <ellipse cx="150" cy="330" rx="7" ry="6"/>
+            <ellipse cx="175" cy="345" rx="6" ry="5"/>
+            <ellipse cx="130" cy="352" rx="5" ry="5"/>
+            <ellipse cx="250" cy="360" rx="7" ry="6"/>
+            <ellipse cx="270" cy="380" rx="5" ry="5"/>
+            <ellipse cx="90" cy="390" rx="6" ry="5"/>
+            <ellipse cx="310" cy="410" rx="6" ry="5"/>
+          </g>
+        </svg>
+        <div class="hero-seal">貯</div>
+        <div class="caption">
+          <div class="jp">静かに、着実に</div>
+          <div class="en">TENANG, TAPI PASTI — SATU LANGKAH SETIAP HARI</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wave-divider">
+    <svg viewBox="0 0 400 22" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 11 Q 10 2 20 11 T 40 11 T 60 11 T 80 11 T 100 11 T 120 11 T 140 11 T 160 11 T 180 11 T 200 11 T 220 11 T 240 11 T 260 11 T 280 11 T 300 11 T 320 11 T 340 11 T 360 11 T 380 11 T 400 11" fill="none" stroke="#B9924A" stroke-width="1" opacity="0.45"/>
+    </svg>
+  </div>
+
+  <section id="onboard-section">
+    <div class="storage-banner" id="storage-banner"></div>
+    <div class="onboard" id="onboard-box">
+      <h3>始めましょう — Ayo mulai</h3>
+      <p>Isi namamu dan target tabungan untuk membuka dasbor pribadimu. Data ini tersimpan otomatis di akunmu.</p>
+      <div class="field">
+        <label for="onboard-name">Nama panggilan</label>
+        <input type="text" id="onboard-name" placeholder="mis. Sakura">
+      </div>
+      <div class="field">
+        <label for="onboard-goal">Target tabungan (Rp)</label>
+        <input type="number" id="onboard-goal" placeholder="mis. 5000000" min="0">
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="createProfile()">Buka Dasbor</button>
+      <div class="note-privacy">Semua data — profil, target, dan riwayat setoran — tersimpan otomatis dan bersifat privat, hanya bisa kamu lihat sendiri setiap kali kembali membuka halaman ini.</div>
+    </div>
+  </section>
+
+</div>
+</div><!-- /room-landing -->
+
+<div id="room-dashboard">
+  <div class="room-topbar">
+    <div class="wrap room-topbar-inner">
+      <div class="brand">
+        <div class="seal">貯</div>
+        <div class="name" id="room-greeting">Ruangmu<small>貯金 · DASBOR PRIBADI</small></div>
+      </div>
+      <button class="btn btn-ghost btn-back" onclick="closeDashboardRoom()">← Kembali ke beranda</button>
+    </div>
+  </div>
+
+  <div class="wrap room-dashboard-body">
+    <div class="section-head">
+      <h2>Dasbor Pribadimu</h2>
+      <span class="jp">あなたの貯金部屋 · RUANG MENABUNGMU</span>
+    </div>
+    <div class="dash show" id="dash">
+      <div>
+        <div class="card">
+          <h3><span class="dot"></span>Tambah Setoran</h3>
+          <div class="quick-add">
+            <div>
+              <label>Jumlah (Rp)</label>
+              <input type="number" id="add-amount" min="0" placeholder="50000">
+            </div>
+            <div>
+              <label>Tanggal</label>
+              <input type="date" id="add-date">
+            </div>
+            <div class="full">
+              <label>Catatan</label>
+              <input type="text" id="add-note" placeholder="mis. Sisa uang jajan">
+            </div>
+            <button class="btn btn-primary" onclick="addEntry()">Simpan Setoran</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3><span class="dot"></span>Riwayat Setoran</h3>
+          <div class="history" id="history-list">
+            <div class="empty-state">Belum ada setoran. Catatan pertamamu akan muncul di sini.</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h3><span class="dot"></span>Progres Tabungan</h3>
+          <div class="gauge-wrap">
+            <svg width="112" height="112" viewBox="0 0 112 112">
+              <circle cx="56" cy="56" r="48" fill="none" stroke="#F1E9DC" stroke-width="10"/>
+              <circle id="gauge-circle" cx="56" cy="56" r="48" fill="none" stroke="url(#gaugeGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="301.6" transform="rotate(-90 56 56)"/>
+              <defs>
+                <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#C81E3A"/>
+                  <stop offset="100%" stop-color="#3A1650"/>
+                </linearGradient>
+              </defs>
+              <text x="56" y="61" text-anchor="middle" font-family="Shippori Mincho, serif" font-weight="700" font-size="18" fill="#1E1226" id="gauge-pct-text">0%</text>
+            </svg>
+            <div class="gauge-num">
+              <div class="total" id="my-total">Rp 0</div>
+              <div class="goal" id="my-goal">dari target Rp 0</div>
+            </div>
+          </div>
+          <div class="stat-mini-row">
+            <div class="stat-mini"><div class="v" id="stat-streak">0 hari</div><div class="l">Runtutan menabung</div></div>
+            <div class="stat-mini"><div class="v" id="stat-avg">Rp 0</div><div class="l">Rata-rata per setoran</div></div>
+          </div>
+        </div>
+
+        <div class="card tip-card">
+          <div class="kanji-bg" id="tip-kanji">積</div>
+          <div class="label">TIP HARI INI · 今日のことわざ</div>
+          <div class="jp-text" id="tip-jp">塵も積もれば山となる</div>
+          <div class="id-text" id="tip-id">Debu yang menumpuk pun akan menjadi gunung — hal kecil yang konsisten akan menjadi besar.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /room-dashboard -->
+
+<footer>
+  <div class="wrap">
+    <span>Chokin 貯金 · dibuat untuk menemani kebiasaan menabungmu</span>
+    <span>Data tersimpan otomatis di akunmu — tidak perlu login berulang</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const dailyTips = [
+  {jp:"塵も積もれば山となる", id:"Debu yang menumpuk pun akan menjadi gunung — hal kecil yang konsisten akan menjadi besar.", kanji:"積"},
+  {jp:"一円を笑う者は一円に泣く", id:"Siapa yang meremehkan satu yen akan menangis karena satu yen — hargai nominal sekecil apa pun.", kanji:"円"},
+  {jp:"石の上にも三年", id:"Duduk di atas batu tiga tahun pun akan terasa hangat — ketekunan membuahkan hasil.", kanji:"石"},
+  {jp:"備えあれば憂いなし", id:"Jika sudah bersiap, tak perlu cemas — tabungan adalah persiapan untuk hari esok.", kanji:"備"},
+  {jp:"千里の道も一歩から", id:"Perjalanan seribu li dimulai dari satu langkah — target besar dimulai dari setoran pertama.", kanji:"歩"},
+  {jp:"時は金なり", id:"Waktu adalah uang — semakin cepat mulai menabung, semakin besar hasil yang terkumpul.", kanji:"時"},
+  {jp:"雨垂れ石を穿つ", id:"Tetesan air hujan pun dapat melubangi batu — konsistensi kecil mengalahkan usaha besar yang sesekali.", kanji:"雨"}
+];
+
+let profile = null;
+let entries = [];
+let userId = null;
+
+function fmtRupiah(n){
+  n = Number(n) || 0;
+  return "Rp " + n.toLocaleString('id-ID');
+}
+
+function todayISO(){
+  return new Date().toISOString().slice(0,10);
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+function setDailyTip(){
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0)) / 86400000);
+  const tip = dailyTips[dayOfYear % dailyTips.length];
+  document.getElementById('tip-jp').textContent = tip.jp;
+  document.getElementById('tip-id').textContent = tip.id;
+  document.getElementById('tip-kanji').textContent = tip.kanji;
+}
+
+/* ---------- lapisan penyimpanan bertingkat ----------
+   1) window.storage  -> penyimpanan akun Claude (persisten di manapun dibuka)
+   2) localStorage    -> penyimpanan browser di perangkat ini saja (kalau dibuka sebagai file/tab biasa)
+   3) memori sesi     -> cadangan terakhir, hilang saat halaman dimuat ulang
+*/
+let storageMode = 'none';
+const memoryStore = {};
+
+async function detectStorage(){
+  if(typeof window.storage !== 'undefined'){
+    try{
+      const testKey = '__chokin_check__';
+      const testVal = String(Date.now());
+      const setRes = await window.storage.set(testKey, testVal, false);
+      if(setRes){
+        const getRes = await window.storage.get(testKey, false);
+        if(getRes && getRes.value === testVal){
+          storageMode = 'cloud';
+          return;
+        }
+      }
+    }catch(e){ console.warn('window.storage tidak dapat dipakai:', e); }
+  }
+
+  try{
+    const testKey = '__chokin_check__';
+    const testVal = String(Date.now());
+    localStorage.setItem(testKey, testVal);
+    const readBack = localStorage.getItem(testKey);
+    localStorage.removeItem(testKey);
+    if(readBack === testVal){
+      storageMode = 'local';
+      return;
+    }
+  }catch(e){ console.warn('localStorage tidak dapat dipakai:', e); }
+
+  storageMode = 'memory';
+}
+
+const appStorage = {
+  async get(key){
+    if(storageMode === 'cloud'){
+      try{ return await window.storage.get(key, false); }
+      catch(e){ return null; }
+    }
+    if(storageMode === 'local'){
+      const v = localStorage.getItem('chokin:' + key);
+      return v !== null ? { key, value:v } : null;
+    }
+    return memoryStore[key] !== undefined ? { key, value: memoryStore[key] } : null;
+  },
+  async set(key, value){
+    if(storageMode === 'cloud'){
+      try{ return await window.storage.set(key, value, false); }
+      catch(e){ return null; }
+    }
+    if(storageMode === 'local'){
+      try{ localStorage.setItem('chokin:' + key, value); return { key, value }; }
+      catch(e){ return null; }
+    }
+    memoryStore[key] = value;
+    return { key, value };
+  }
+};
+
+function showStorageBanner(){
+  const el = document.getElementById('storage-banner');
+  el.classList.remove('mode-local','mode-memory');
+  if(storageMode === 'cloud'){
+    el.classList.remove('show');
+    return;
+  }
+  if(storageMode === 'local'){
+    el.textContent = 'Penyimpanan akun Claude tidak terdeteksi di tampilan ini, jadi Chokin menyimpan datamu di penyimpanan browser perangkat ini (localStorage). Artinya data aman selama kamu memakai browser dan perangkat yang sama, tapi tidak ikut pindah kalau kamu buka dari perangkat atau browser lain, dan bisa hilang kalau data browser dibersihkan.';
+    el.classList.add('show','mode-local');
+    return;
+  }
+  el.textContent = 'Penyimpanan otomatis tidak dapat diakses sama sekali di tampilan ini (baik penyimpanan akun Claude maupun browser), jadi data yang kamu isi hanya bertahan selama halaman ini terbuka dan akan hilang saat dimuat ulang. Coba buka halaman ini langsung sebagai file di browser (bukan dalam mode privat/incognito) agar penyimpanan browser bisa aktif.';
+  el.classList.add('show','mode-memory');
+}
+
+async function init(){
+  document.getElementById('add-date').value = todayISO();
+  setDailyTip();
+
+  await detectStorage();
+  showStorageBanner();
+
+  await loadProfile();
+}
+
+function slideDoorsShut(){
+  const fusuma = document.getElementById('fusuma');
+  fusuma.classList.add('animating');
+  fusuma.querySelector('.left').style.transform = 'scaleX(1)';
+  fusuma.querySelector('.right').style.transform = 'scaleX(1)';
+}
+
+function slideDoorsOpen(){
+  const fusuma = document.getElementById('fusuma');
+  fusuma.querySelector('.left').style.transform = 'scaleX(0)';
+  fusuma.querySelector('.right').style.transform = 'scaleX(0)';
+  setTimeout(()=> fusuma.classList.remove('animating'), 520);
+}
+
+function enterDashboardRoom(animate){
+  const room = document.getElementById('room-dashboard');
+  if(profile){
+    document.getElementById('room-greeting').innerHTML = 'Ruang ' + escapeHtml(profile.name) + '<small>貯金 · DASBOR PRIBADI</small>';
+  }
+  if(!animate){
+    room.classList.add('open');
+    return;
+  }
+  slideDoorsShut();
+  setTimeout(()=>{
+    room.classList.add('open');
+    room.scrollTop = 0;
+    setTimeout(slideDoorsOpen, 60);
+  }, 520);
+}
+
+function closeDashboardRoom(){
+  slideDoorsShut();
+  setTimeout(()=>{
+    document.getElementById('room-dashboard').classList.remove('open');
+    window.scrollTo(0,0);
+    setTimeout(slideDoorsOpen, 60);
+  }, 520);
+}
+
+function goToDashboardRoom(evt){
+  if(evt) evt.preventDefault();
+  if(profile){
+    enterDashboardRoom(true);
+  }else{
+    document.getElementById('onboard-name').focus();
+    document.getElementById('onboard-box').scrollIntoView({behavior:'smooth', block:'center'});
+  }
+  return false;
+}
+
+async function loadProfile(){
+  try{
+    const res = await appStorage.get('profile');
+    if(res && res.value){
+      profile = JSON.parse(res.value);
+      userId = profile.id;
+      await loadEntries();
+      renderProfileStats();
+      enterDashboardRoom(false);
+    }
+  }catch(e){
+    // belum ada profil tersimpan -> tampilkan halaman onboarding (kondisi normal untuk pengguna baru)
+    console.warn('Belum ada profil tersimpan:', e);
+  }
+}
+
+async function createProfile(){
+  const name = document.getElementById('onboard-name').value.trim();
+  const goal = Number(document.getElementById('onboard-goal').value) || 0;
+  if(!name){ showToast('Isi nama panggilanmu dulu ya'); return; }
+  if(goal <= 0){ showToast('Isi target tabungan yang valid'); return; }
+
+  userId = 'u' + Date.now() + Math.random().toString(36).slice(2,8);
+  profile = { id:userId, name, goal, createdAt: todayISO() };
+
+  try{
+    const result = await appStorage.set('profile', JSON.stringify(profile));
+    if(!result){ showToast('Gagal menyimpan profil, coba lagi'); return; }
+    entries = [];
+    renderHistory();
+    renderProfileStats();
+    enterDashboardRoom(true);
+    showToast('Dasbor siap! Selamat menabung, ' + name);
+  }catch(e){
+    console.error('Gagal menyimpan profil:', e);
+    showToast('Terjadi kesalahan saat membuat profil');
+  }
+}
+
+async function loadEntries(){
+  try{
+    const res = await appStorage.get('entries');
+    entries = (res && res.value) ? JSON.parse(res.value) : [];
+  }catch(e){
+    entries = [];
+  }
+  renderHistory();
+}
+
+async function addEntry(){
+  const amount = Number(document.getElementById('add-amount').value);
+  const date = document.getElementById('add-date').value || todayISO();
+  const note = document.getElementById('add-note').value.trim() || 'Setoran tabungan';
+
+  if(!amount || amount <= 0){ showToast('Isi jumlah setoran yang valid'); return; }
+
+  const prevEntries = entries.slice();
+  entries.push({ amount, date, note, ts: Date.now() });
+  entries.sort((a,b)=> new Date(b.date) - new Date(a.date) || b.ts - a.ts);
+
+  try{
+    const result = await appStorage.set('entries', JSON.stringify(entries));
+    if(!result){
+      entries = prevEntries;
+      showToast('Gagal menyimpan setoran, coba lagi');
+      return;
+    }
+    document.getElementById('add-amount').value = '';
+    document.getElementById('add-note').value = '';
+    document.getElementById('add-date').value = todayISO();
+    renderHistory();
+    renderProfileStats();
+    showToast('Setoran ' + fmtRupiah(amount) + ' tersimpan');
+  }catch(e){
+    entries = prevEntries;
+    console.error('Gagal menyimpan setoran:', e);
+    showToast('Terjadi kesalahan saat menyimpan setoran');
+  }
+}
+
+function renderHistory(){
+  const box = document.getElementById('history-list');
+  if(!entries.length){
+    box.innerHTML = '<div class="empty-state">Belum ada setoran. Catatan pertamamu akan muncul di sini.</div>';
+    return;
+  }
+  box.innerHTML = entries.map(e => `
+    <div class="entry">
+      <div class="meta">
+        <span class="note">${escapeHtml(e.note)}</span>
+        <span class="date">${formatDate(e.date)}</span>
+      </div>
+      <div class="amount">+${fmtRupiah(e.amount)}</div>
+    </div>
+  `).join('');
+}
+
+function renderProfileStats(){
+  if(!profile) return;
+  const total = entries.reduce((s,e)=> s + Number(e.amount||0), 0);
+  const pct = Math.min(100, Math.round((total / profile.goal) * 100)) || 0;
+
+  document.getElementById('my-total').textContent = fmtRupiah(total);
+  document.getElementById('my-goal').textContent = 'dari target ' + fmtRupiah(profile.goal);
+
+  const circumference = 301.6;
+  const offset = circumference - (pct/100)*circumference;
+  document.getElementById('gauge-circle').setAttribute('stroke-dashoffset', offset);
+  document.getElementById('gauge-pct-text').textContent = pct + '%';
+
+  const avg = entries.length ? Math.round(total / entries.length) : 0;
+  document.getElementById('stat-avg').textContent = fmtRupiah(avg);
+
+  document.getElementById('stat-streak').textContent = calcStreak() + ' hari';
+}
+
+function calcStreak(){
+  if(!entries.length) return 0;
+  const dateSet = new Set(entries.map(e=>e.date));
+  let streak = 0;
+  let cursor = new Date();
+  // allow streak to count today or start from yesterday if no entry today
+  if(!dateSet.has(todayISO())){
+    cursor.setDate(cursor.getDate()-1);
+  }
+  while(dateSet.has(cursor.toISOString().slice(0,10))){
+    streak++;
+    cursor.setDate(cursor.getDate()-1);
+  }
+  return streak;
+}
+
+function formatDate(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('id-ID', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+init();
+</script>
+
+</body>
+</html>
